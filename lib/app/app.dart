@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/content/cosmetics.dart';
 import '../core/models/match_models.dart';
 import '../core/settings/game_settings.dart';
+import '../features/online/online_lobby_page.dart';
 import '../features/offline_game/collection_page.dart';
 import '../features/offline_game/game_page.dart';
 import '../features/offline_game/settings_page.dart';
@@ -53,6 +54,10 @@ class MamalikApp extends ConsumerStatefulWidget {
       GoRoute(
         path: '/result',
         builder: (BuildContext context, GoRouterState state) => MatchResultPage(match: state.extra! as MatchState),
+      ),
+      GoRoute(
+        path: '/online',
+        builder: (BuildContext context, GoRouterState state) => const OnlineLobbyPage(),
       ),
     ],
   );

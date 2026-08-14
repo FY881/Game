@@ -6,6 +6,7 @@ void main() {
   test('يبقى الأونلاين غير مفعل افتراضيًا إلى أن يضبط عنوان خادم صريح', () {
     expect(OnlineConfig.enabled, isFalse);
     expect(OnlineConfig.isAvailable, isFalse);
+    expect(OnlineConfig.isGoogleSignInAvailable, isFalse);
   });
 
   test('يرفض عميل الأونلاين أي طلب عند غياب إعداد الخادم الموثوق', () async {

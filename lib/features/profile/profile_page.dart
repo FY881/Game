@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/profile/player_profile.dart';
 import '../../core/profile/player_profile_controller.dart';
+import '../../core/online/online_config.dart';
+import '../online/online_session_controller.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -65,7 +67,10 @@ class ProfilePage extends ConsumerWidget {
                 label: const Text('تعديل الاسم والصورة'),
               ),
               const SizedBox(height: 12),
-              const Text('هذا الملف محفوظ على الجهاز ولا يتصل بحساب خارجي. ستأتي مزامنة Google وحذف الحساب وتنزيل البيانات في مرحلة الحسابات والخادم.', textAlign: TextAlign.center),
+              if (OnlineConfig.isGoogleSignInAvailable)
+                _GoogleLinkCard(displayName: profile.displayName)
+              else
+                const Text('هذا الملف محفوظ على الجهاز. يظهر ربط Google فقط عند تفعيل خادم الاختبار وإعداد معرّف عميل الويب في نسخة التطبيق.', textAlign: TextAlign.center),
             ],
           );
         },
@@ -125,5 +130,46 @@ class ProfilePage extends ConsumerWidget {
       ),
     );
     nameController.dispose();
+  }
+}
+
+class _GoogleLinkCard extends ConsumerWidget {
+  const _GoogleLinkCard({required this.displayName});
+
+  final String displayName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue onlineState = ref.watch(onlineSessionProvider);
+    final bool linked = onlineState.valueOrNull?.user.provider == 'google';
+    final bool loading = onlineState.isLoading;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(linked ? 'حساب Google مرتبط' : 'حماية الملف عبر Google', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text(linked ? 'سيستخدم الخادم هوية Google للتحقق من الحساب في بيئة الاختبار.' : 'تُرسل هوية Google إلى الخادم للتحقق؛ لا تحفظ اللعبة كلمة مرور Google.'),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: loading || linked
+                  ? null
+                  : () async {
+                      try {
+                        await ref.read(onlineSessionProvider.notifier).linkGoogleWithDevice(displayName: displayName);
+                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم ربط حساب Google بنجاح.')));
+                      } catch (_) {
+                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر إكمال ربط Google. تحقق من إعداد عميل Google واتصال الخادم.')));
+                      }
+                    },
+              icon: const Icon(Icons.account_circle_outlined),
+              label: Text(linked ? 'مرتبط' : 'ربط Google'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

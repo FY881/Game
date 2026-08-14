@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/content/cosmetics.dart';
+import '../../core/content/heroes.dart';
+import '../../core/content/maps.dart';
 import '../../core/models/match_models.dart';
 import 'offline_match_controller.dart';
 
@@ -16,6 +19,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   GameMode _mode = GameMode.classic;
   int _humanPlayers = 1;
   AiDifficulty _difficulty = AiDifficulty.medium;
+  GameLoadout _loadout = const GameLoadout();
   bool _hasSavedMatch = false;
 
   @override
@@ -34,9 +38,22 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (restored && mounted) context.go('/offline-match');
   }
 
+  Future<void> _openCollection() async {
+    final GameLoadout? updated = await context.push<GameLoadout>('/collection', extra: _loadout);
+    if (updated != null && mounted) setState(() => _loadout = updated);
+  }
+
   void _startMatch() {
     ref.read(offlineMatchProvider.notifier).newMatch(
-          config: MatchConfig(mode: _mode, humanPlayers: _humanPlayers, aiDifficulty: _difficulty),
+          config: MatchConfig(
+            mode: _mode,
+            humanPlayers: _humanPlayers,
+            aiDifficulty: _difficulty,
+            heroId: _loadout.heroId,
+            mapId: _loadout.mapId,
+            pawnStyleId: _loadout.pawnStyleId,
+            diceStyleId: _loadout.diceStyleId,
+          ),
         );
     context.go('/offline-match');
   }
@@ -48,7 +65,13 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: <Widget>[
-            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: <Widget>[
+                IconButton(tooltip: 'إعدادات اللعب', onPressed: () => context.push('/settings'), icon: const Icon(Icons.settings_outlined)),
+                IconButton(tooltip: 'الأبطال والخرائط', onPressed: _openCollection, icon: const Icon(Icons.style_outlined)),
+              ],
+            ),
             const Icon(Icons.casino_outlined, size: 72, color: Color(0xffd8b16d)),
             const SizedBox(height: 18),
             Text('ممالك النرد', textAlign: TextAlign.center, style: Theme.of(context).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w800)),
@@ -100,6 +123,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                           onSelected: _humanPlayers == 4 ? null : (_) => setState(() => _difficulty = difficulty),
                         ))
                     .toList(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _Section(
+              title: 'اختياراتك التجميلية',
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: <Widget>[
+                  Chip(avatar: Icon(Heroes.byId(_loadout.heroId).icon, size: 18), label: Text(Heroes.byId(_loadout.heroId).name)),
+                  Chip(avatar: Icon(BoardMaps.byId(_loadout.mapId).icon, size: 18), label: Text(BoardMaps.byId(_loadout.mapId).name)),
+                  Chip(avatar: Icon(Cosmetics.pawnById(_loadout.pawnStyleId).icon, size: 18), label: Text(Cosmetics.pawnById(_loadout.pawnStyleId).name)),
+                ],
               ),
             ),
             const SizedBox(height: 24),

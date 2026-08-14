@@ -14,6 +14,7 @@ final NotifierProvider<OfflineMatchController, MatchState> offlineMatchProvider 
 class OfflineMatchController extends Notifier<MatchState> {
   final Random _random = Random();
   final MatchStore _store = MatchStore();
+  final List<MatchState> _trainingHistory = <MatchState>[];
   bool _stateTouched = false;
 
   @override
@@ -21,17 +22,18 @@ class OfflineMatchController extends Notifier<MatchState> {
 
   void newMatch({MatchConfig config = const MatchConfig()}) {
     _stateTouched = true;
+    _trainingHistory.clear();
     _set(ClassicLudoRules.initialState(config: config));
   }
 
   void rollDice() {
     _stateTouched = true;
-    _set(ClassicLudoRules.roll(state, _random.nextInt(6) + 1));
+    _applyHumanMove(ClassicLudoRules.roll(state, _random.nextInt(6) + 1));
   }
 
   void movePawn(String pawnId) {
     _stateTouched = true;
-    _set(ClassicLudoRules.move(state, pawnId));
+    _applyHumanMove(ClassicLudoRules.move(state, pawnId));
   }
 
   void playAiTurn() {
@@ -44,6 +46,15 @@ class OfflineMatchController extends Notifier<MatchState> {
   void togglePause() {
     _stateTouched = true;
     _set(state.copyWith(isPaused: !state.isPaused, message: state.isPaused ? 'استؤنفت المباراة.' : 'المباراة متوقفة مؤقتًا.'));
+  }
+
+  bool get canUndo => state.config.canUndo && _trainingHistory.isNotEmpty && !state.isPaused && state.winner == null;
+
+  void undoTrainingStep() {
+    if (!canUndo) return;
+    _stateTouched = true;
+    final MatchState previous = _trainingHistory.removeLast();
+    _set(previous.copyWith(message: 'تم التراجع خطوة واحدة. حاول من جديد.'));
   }
 
   Future<bool> restoreLastMatch() async {
@@ -60,5 +71,11 @@ class OfflineMatchController extends Notifier<MatchState> {
   void _set(MatchState next) {
     state = next;
     unawaited(_store.save(next));
+  }
+
+  void _applyHumanMove(MatchState next) {
+    if (identical(next, state)) return;
+    if (state.config.canUndo) _trainingHistory.add(state);
+    _set(next);
   }
 }

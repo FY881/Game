@@ -45,6 +45,10 @@ class MatchStore {
           'mode': state.config.mode.index,
           'humans': state.config.humanPlayers,
           'difficulty': state.config.aiDifficulty.index,
+          'heroId': state.config.heroId,
+          'mapId': state.config.mapId,
+          'pawnStyleId': state.config.pawnStyleId,
+          'diceStyleId': state.config.diceStyleId,
         },
         'players': state.players
             .map((Player player) => <String, dynamic>{
@@ -63,6 +67,10 @@ class MatchStore {
       mode: GameMode.values[configMap['mode'] as int],
       humanPlayers: configMap['humans'] as int,
       aiDifficulty: AiDifficulty.values[configMap['difficulty'] as int],
+      heroId: configMap['heroId'] as String? ?? 'knight',
+      mapId: configMap['mapId'] as String? ?? 'sand_palace',
+      pawnStyleId: configMap['pawnStyleId'] as String? ?? 'royal_orb',
+      diceStyleId: configMap['diceStyleId'] as String? ?? 'brass_dice',
     );
     final List<Player> players = (raw['players'] as List<dynamic>).map((dynamic entry) {
       final Map<String, dynamic> playerMap = entry as Map<String, dynamic>;

@@ -27,21 +27,33 @@ class MatchConfig {
     this.mode = GameMode.classic,
     this.humanPlayers = 1,
     this.aiDifficulty = AiDifficulty.medium,
+    this.heroId = 'knight',
+    this.mapId = 'sand_palace',
+    this.pawnStyleId = 'royal_orb',
+    this.diceStyleId = 'brass_dice',
   });
 
   final GameMode mode;
   final int humanPlayers;
   final AiDifficulty aiDifficulty;
+  final String heroId;
+  final String mapId;
+  final String pawnStyleId;
+  final String diceStyleId;
 
   int get pawnsPerPlayer => mode == GameMode.quick ? 3 : 4;
   int get homeProgress => mode == GameMode.quick ? 46 : 57;
   bool get canUndo => mode == GameMode.training;
   bool canEnterWith(int dice) => mode == GameMode.quick ? dice == 5 || dice == 6 : dice == 6;
 
-  MatchConfig copyWith({GameMode? mode, int? humanPlayers, AiDifficulty? aiDifficulty}) => MatchConfig(
+  MatchConfig copyWith({GameMode? mode, int? humanPlayers, AiDifficulty? aiDifficulty, String? heroId, String? mapId, String? pawnStyleId, String? diceStyleId}) => MatchConfig(
         mode: mode ?? this.mode,
         humanPlayers: humanPlayers ?? this.humanPlayers,
         aiDifficulty: aiDifficulty ?? this.aiDifficulty,
+        heroId: heroId ?? this.heroId,
+        mapId: mapId ?? this.mapId,
+        pawnStyleId: pawnStyleId ?? this.pawnStyleId,
+        diceStyleId: diceStyleId ?? this.diceStyleId,
       );
 }
 

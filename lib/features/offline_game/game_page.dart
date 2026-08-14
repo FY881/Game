@@ -4,10 +4,15 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/content/cosmetics.dart';
+import '../../core/content/heroes.dart';
+import '../../core/content/maps.dart';
 import '../../core/game/ludo_board_game.dart';
 import '../../core/models/match_models.dart';
 import '../../core/rules/classic_ludo_rules.dart';
+import '../../core/settings/game_settings.dart';
 import 'offline_match_controller.dart';
+import 'training_coach.dart';
 
 class GamePage extends ConsumerStatefulWidget {
   const GamePage({super.key});
@@ -18,14 +23,18 @@ class GamePage extends ConsumerStatefulWidget {
 
 class _GamePageState extends ConsumerState<GamePage> {
   Timer? _aiTimer;
+  DateTime _lastAiAction = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
     super.initState();
-    _aiTimer = Timer.periodic(const Duration(milliseconds: 850), (Timer timer) {
+    _aiTimer = Timer.periodic(const Duration(milliseconds: 150), (Timer timer) {
       final MatchState state = ref.read(offlineMatchProvider);
-      if (state.winner == null && !state.isPaused && !state.activePlayer.isHuman && state.phase == MatchPhase.rolling) {
+      final GameSettings settings = ref.read(gameSettingsProvider);
+      final bool waitComplete = DateTime.now().difference(_lastAiAction) >= settings.aiTurnDelay;
+      if (waitComplete && state.winner == null && !state.isPaused && !state.activePlayer.isHuman && state.phase == MatchPhase.rolling) {
         ref.read(offlineMatchProvider.notifier).playAiTurn();
+        _lastAiAction = DateTime.now();
       }
     });
   }
@@ -88,6 +97,8 @@ class _GamePageState extends ConsumerState<GamePage> {
                           Chip(label: Text(state.config.mode.label)),
                           Chip(label: Text('${state.config.humanPlayers} محلي')), 
                           Chip(label: Text(switch (state.config.aiDifficulty) { AiDifficulty.easy => 'AI سهل', AiDifficulty.medium => 'AI متوسط', AiDifficulty.expert => 'AI محترف' })),
+                          Chip(avatar: Icon(Heroes.byId(state.config.heroId).icon, size: 18), label: Text(Heroes.byId(state.config.heroId).name)),
+                          Chip(avatar: Icon(BoardMaps.byId(state.config.mapId).icon, size: 18), label: Text(BoardMaps.byId(state.config.mapId).name)),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -97,6 +108,26 @@ class _GamePageState extends ConsumerState<GamePage> {
                       ),
                       const SizedBox(height: 4),
                       Text(state.message),
+                      if (state.config.mode == GameMode.training) ...<Widget>[
+                        const SizedBox(height: 10),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.55),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                const Padding(padding: EdgeInsets.only(top: 2), child: Icon(Icons.school_outlined)),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(TrainingCoach.instructionFor(state))),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
@@ -113,9 +144,17 @@ class _GamePageState extends ConsumerState<GamePage> {
                       const SizedBox(height: 10),
                       FilledButton.icon(
                         onPressed: state.phase == MatchPhase.rolling && state.activePlayer.isHuman && !state.isPaused ? controller.rollDice : null,
-                        icon: const Icon(Icons.casino),
+                        icon: Icon(Cosmetics.diceById(state.config.diceStyleId).icon, color: Cosmetics.diceById(state.config.diceStyleId).accent),
                         label: Text(state.dice == null ? 'ارمِ النرد' : 'النتيجة ${state.dice}'),
                       ),
+                      if (state.config.canUndo) ...<Widget>[
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: controller.canUndo ? controller.undoTrainingStep : null,
+                          icon: const Icon(Icons.undo),
+                          label: const Text('تراجع عن آخر خطوة'),
+                        ),
+                      ],
                       if (state.winner != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 10),

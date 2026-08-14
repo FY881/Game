@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/settings/game_settings.dart';
+import '../core/content/cosmetics.dart';
+import '../features/offline_game/collection_page.dart';
 import '../features/offline_game/game_page.dart';
 import '../features/offline_game/home_page.dart';
+import '../features/offline_game/settings_page.dart';
 
-class MamalikApp extends StatelessWidget {
+class MamalikApp extends ConsumerStatefulWidget {
   const MamalikApp({super.key});
 
   static final GoRouter _router = GoRouter(
@@ -18,15 +23,37 @@ class MamalikApp extends StatelessWidget {
         path: '/offline-match',
         builder: (BuildContext context, GoRouterState state) => const GamePage(),
       ),
+      GoRoute(
+        path: '/settings',
+        builder: (BuildContext context, GoRouterState state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: '/collection',
+        builder: (BuildContext context, GoRouterState state) => CollectionPage(
+          initialLoadout: state.extra as GameLoadout? ?? const GameLoadout(),
+        ),
+      ),
     ],
   );
 
   @override
+  ConsumerState<MamalikApp> createState() => _MamalikAppState();
+}
+
+class _MamalikAppState extends ConsumerState<MamalikApp> {
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(() => ref.read(gameSettingsProvider.notifier).load());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final GameSettings settings = ref.watch(gameSettingsProvider);
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'ممالك النرد',
-      routerConfig: _router,
+      routerConfig: MamalikApp._router,
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -40,7 +67,13 @@ class MamalikApp extends StatelessWidget {
       builder: (BuildContext context, Widget? child) {
         return Directionality(
           textDirection: TextDirection.rtl,
-          child: child ?? const SizedBox.shrink(),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(settings.textScale),
+              disableAnimations: settings.reduceMotion,
+            ),
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

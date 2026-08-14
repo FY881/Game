@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flame/game.dart';
 
+import '../content/maps.dart';
 import '../models/match_models.dart';
 import '../rules/classic_ludo_rules.dart';
 
@@ -11,7 +12,7 @@ class LudoBoardGame extends FlameGame {
   final MatchState state;
 
   @override
-  Color backgroundColor() => const Color(0xff0b1830);
+  Color backgroundColor() => BoardMaps.byId(state.config.mapId).background;
 
   @override
   void render(Canvas canvas) {
@@ -19,9 +20,10 @@ class LudoBoardGame extends FlameGame {
     final double side = size.x < size.y ? size.x : size.y;
     final Offset origin = Offset((size.x - side) / 2, (size.y - side) / 2);
     final double cell = side / 15;
-    final Paint paper = Paint()..color = const Color(0xfff3e5c7);
-    final Paint ink = Paint()..color = const Color(0xff17345a);
-    final Paint brass = Paint()..color = const Color(0xffc98a47);
+    final BoardMapTheme map = BoardMaps.byId(state.config.mapId);
+    final Paint paper = Paint()..color = map.paper;
+    final Paint ink = Paint()..color = map.track;
+    final Paint brass = Paint()..color = map.border;
 
     canvas.drawRRect(RRect.fromRectAndRadius(origin & Size.square(side), const Radius.circular(28)), paper);
     canvas.drawRRect(
@@ -30,7 +32,7 @@ class LudoBoardGame extends FlameGame {
         const Radius.circular(22),
       ),
       Paint()
-        ..color = const Color(0xffe3d0a8)
+        ..color = map.border.withValues(alpha: .72)
         ..style = PaintingStyle.stroke
         ..strokeWidth = cell * .15,
     );
@@ -49,15 +51,14 @@ class LudoBoardGame extends FlameGame {
     for (final Player player in state.players) {
       final Paint playerPaint = Paint()..color = player.color.color;
       final Offset base = _baseCenter(player.color, origin, cell);
-      canvas.drawCircle(base, cell * 1.75, playerPaint..color = player.color.color.withOpacity(.26));
+      canvas.drawCircle(base, cell * 1.75, playerPaint..color = player.color.color.withValues(alpha: .26));
       for (int index = 0; index < player.pawns.length; index++) {
         final Pawn pawn = player.pawns[index];
         final Offset position = _pawnPosition(pawn, index, origin, cell);
-        canvas.drawCircle(position, cell * .29, Paint()..color = player.color.color);
-        canvas.drawCircle(position, cell * .29, brass..style = PaintingStyle.stroke..strokeWidth = 1.6);
+        _drawPawn(canvas, position, cell, player.color.color, brass, state.config.pawnStyleId);
       }
     }
-    canvas.drawCircle(origin + Offset(side / 2, side / 2), cell * 1.05, Paint()..color = const Color(0xff2fb4a5));
+    canvas.drawCircle(origin + Offset(side / 2, side / 2), cell * 1.05, Paint()..color = map.center);
     canvas.drawCircle(origin + Offset(side / 2, side / 2), cell * .68, brass);
   }
 
@@ -77,6 +78,25 @@ class LudoBoardGame extends FlameGame {
     }
     final Offset logical = points[index % points.length];
     return origin + Offset(logical.dx * cell, logical.dy * cell);
+  }
+
+  void _drawPawn(Canvas canvas, Offset position, double cell, Color playerColor, Paint brass, String styleId) {
+    final Paint fill = Paint()..color = playerColor;
+    final Paint outline = Paint()
+      ..color = brass.color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    if (styleId == 'desert_seal') {
+      final RRect shape = RRect.fromRectAndRadius(Rect.fromCenter(center: position, width: cell * .56, height: cell * .56), Radius.circular(cell * .10));
+      canvas.drawRRect(shape, fill);
+      canvas.drawRRect(shape, outline);
+      return;
+    }
+    canvas.drawCircle(position, cell * .29, fill);
+    if (styleId == 'moon_drop') {
+      canvas.drawCircle(position, cell * .18, Paint()..color = const Color(0xfff8f1da).withValues(alpha: .55));
+    }
+    canvas.drawCircle(position, cell * .29, outline);
   }
 
   Offset _baseCenter(PlayerColor color, Offset origin, double cell) => switch (color) {

@@ -1,0 +1,23 @@
+name: mamalik_alnard
+description: Original Arabic Android board game inspired by classic race-to-home rules.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.20.0
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.6.2
+  shared_preferences: ^2.3.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

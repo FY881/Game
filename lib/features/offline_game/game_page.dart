@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/content/cosmetics.dart';
 import '../../core/content/heroes.dart';
 import '../../core/content/maps.dart';
 import '../../core/game/ludo_board_game.dart';
 import '../../core/models/match_models.dart';
+import '../../core/progression/local_progress.dart';
 import '../../core/rules/classic_ludo_rules.dart';
 import '../../core/settings/game_settings.dart';
 import 'offline_match_controller.dart';
@@ -48,12 +51,24 @@ class _GamePageState extends ConsumerState<GamePage> {
   @override
   Widget build(BuildContext context) {
     final MatchState state = ref.watch(offlineMatchProvider);
+    final GameSettings settings = ref.watch(gameSettingsProvider);
+    ref.listen<MatchState>(offlineMatchProvider, (MatchState? previous, MatchState next) {
+      if (previous?.winner == null && next.winner != null && mounted) {
+        unawaited(ref.read(localProgressProvider.notifier).recordFinishedMatch(next));
+        context.go('/result', extra: next);
+      }
+    });
     final OfflineMatchController controller = ref.read(offlineMatchProvider.notifier);
     final List<String> legal = ClassicLudoRules.legalPawnIds(state);
     return Scaffold(
       appBar: AppBar(
         title: Text('مباراة ${state.config.mode.label}'),
         centerTitle: true,
+        leading: IconButton(
+          tooltip: 'الرئيسية',
+          onPressed: () => context.go('/'),
+          icon: const Icon(Icons.home_outlined),
+        ),
         actions: <Widget>[
           IconButton(
             tooltip: state.isPaused ? 'استئناف' : 'إيقاف مؤقت',
@@ -73,7 +88,13 @@ class _GamePageState extends ConsumerState<GamePage> {
                   children: <Widget>[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(24),
-                      child: GameWidget<LudoBoardGame>(game: LudoBoardGame(state)),
+                      child: GameWidget<LudoBoardGame>(
+                        game: LudoBoardGame(
+                          state,
+                          colorVisionMode: settings.colorVisionMode,
+                          batterySaver: settings.batterySaverEnabled,
+                        ),
+                      ),
                     ),
                     if (state.isPaused)
                       ColoredBox(
@@ -136,14 +157,24 @@ class _GamePageState extends ConsumerState<GamePage> {
                           final bool isLegal = legal.contains(pawn.id);
                           final int? destination = ClassicLudoRules.previewProgress(state, pawn.id);
                           return OutlinedButton(
-                            onPressed: isLegal && state.activePlayer.isHuman ? () => controller.movePawn(pawn.id) : null,
+                            onPressed: isLegal && state.activePlayer.isHuman
+                                ? () {
+                                    if (settings.vibrationEnabled) unawaited(HapticFeedback.selectionClick());
+                                    controller.movePawn(pawn.id);
+                                  }
+                                : null,
                             child: Text(destination == null ? 'حجر ${pawn.id.split('-').last}' : 'حجر ${pawn.id.split('-').last} ← إلى $destination'),
                           );
                         }).toList(),
                       ),
                       const SizedBox(height: 10),
                       FilledButton.icon(
-                        onPressed: state.phase == MatchPhase.rolling && state.activePlayer.isHuman && !state.isPaused ? controller.rollDice : null,
+                        onPressed: state.phase == MatchPhase.rolling && state.activePlayer.isHuman && !state.isPaused
+                            ? () {
+                                if (settings.vibrationEnabled) unawaited(HapticFeedback.lightImpact());
+                                controller.rollDice();
+                              }
+                            : null,
                         icon: Icon(Cosmetics.diceById(state.config.diceStyleId).icon, color: Cosmetics.diceById(state.config.diceStyleId).accent),
                         label: Text(state.dice == null ? 'ارمِ النرد' : 'النتيجة ${state.dice}'),
                       ),
@@ -155,14 +186,6 @@ class _GamePageState extends ConsumerState<GamePage> {
                           label: const Text('تراجع عن آخر خطوة'),
                         ),
                       ],
-                      if (state.winner != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: FilledButton.tonal(
-                            onPressed: () => controller.newMatch(config: state.config),
-                            child: const Text('مباراة جديدة بنفس الإعدادات'),
-                          ),
-                        ),
                     ],
                   ),
                 ),

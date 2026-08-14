@@ -48,6 +48,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     selected: <double>{settings.textScale},
                     onSelectionChanged: (Set<double> selection) => controller.update(settings.copyWith(textScale: selection.first)),
                   ),
+                  const SizedBox(height: 18),
+                  Text('تمييز ألوان اللاعبين', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<ColorVisionMode>(
+                    initialValue: settings.colorVisionMode,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    items: ColorVisionMode.values
+                        .map((ColorVisionMode item) => DropdownMenuItem<ColorVisionMode>(value: item, child: Text(item.label)))
+                        .toList(),
+                    onChanged: (ColorVisionMode? value) => value == null ? null : controller.update(settings.copyWith(colorVisionMode: value)),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('تطبّق لوحة اللعبة ألوانًا بديلة وواضحة للحفاظ على تمييز الأحجار والمسارات.'),
                 ],
               ),
             ),
@@ -61,6 +74,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   onChanged: (bool value) => controller.update(settings.copyWith(reduceMotion: value)),
                   title: const Text('خفض الحركة'),
                   subtitle: const Text('ينفّذ أدوار الخصوم فورًا ويقلل الانتقالات غير الضرورية.'),
+                ),
+                const Divider(height: 1),
+                SwitchListTile.adaptive(
+                  value: settings.vibrationEnabled,
+                  onChanged: (bool value) => controller.update(settings.copyWith(vibrationEnabled: value)),
+                  title: const Text('الاهتزاز اللمسي'),
+                  subtitle: const Text('نبضة خفيفة عند رمي النرد وتحريك الحجر.'),
                 ),
                 const Divider(height: 1),
                 Padding(
@@ -77,6 +97,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         selected: <GamePace>{settings.pace},
                         onSelectionChanged: (Set<GamePace> selection) => controller.update(settings.copyWith(pace: selection.first)),
                       ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Text('الأداء والطاقة', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<PerformanceMode>(
+                        initialValue: settings.performanceMode,
+                        decoration: const InputDecoration(border: OutlineInputBorder()),
+                        items: PerformanceMode.values
+                            .map((PerformanceMode item) => DropdownMenuItem<PerformanceMode>(value: item, child: Text(item.label)))
+                            .toList(),
+                        onChanged: (PerformanceMode? value) => value == null ? null : controller.update(settings.copyWith(performanceMode: value)),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text('وضع توفير البطارية يحدّث محرك اللوحة على وتيرة أقل مستهدفة لتقليل الاستهلاك على الهواتف الضعيفة.'),
                     ],
                   ),
                 ),

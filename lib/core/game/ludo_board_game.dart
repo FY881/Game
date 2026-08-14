@@ -5,14 +5,30 @@ import 'package:flame/game.dart';
 import '../content/maps.dart';
 import '../models/match_models.dart';
 import '../rules/classic_ludo_rules.dart';
+import '../settings/game_settings.dart';
 
 class LudoBoardGame extends FlameGame {
-  LudoBoardGame(this.state);
+  LudoBoardGame(this.state, {required this.colorVisionMode, required this.batterySaver});
 
   final MatchState state;
+  final ColorVisionMode colorVisionMode;
+  final bool batterySaver;
+  double _batteryAccumulator = 0;
 
   @override
   Color backgroundColor() => BoardMaps.byId(state.config.mapId).background;
+
+  @override
+  void update(double dt) {
+    if (batterySaver) {
+      _batteryAccumulator += dt;
+      if (_batteryAccumulator < 1 / 30) return;
+      _batteryAccumulator = 0;
+      super.update(1 / 30);
+      return;
+    }
+    super.update(dt);
+  }
 
   @override
   void render(Canvas canvas) {
@@ -49,18 +65,35 @@ class LudoBoardGame extends FlameGame {
     }
 
     for (final Player player in state.players) {
-      final Paint playerPaint = Paint()..color = player.color.color;
+      final Color playerColor = _playerColor(player.color);
+      final Paint playerPaint = Paint()..color = playerColor;
       final Offset base = _baseCenter(player.color, origin, cell);
-      canvas.drawCircle(base, cell * 1.75, playerPaint..color = player.color.color.withValues(alpha: .26));
+      canvas.drawCircle(base, cell * 1.75, playerPaint..color = playerColor.withValues(alpha: .26));
       for (int index = 0; index < player.pawns.length; index++) {
         final Pawn pawn = player.pawns[index];
         final Offset position = _pawnPosition(pawn, index, origin, cell);
-        _drawPawn(canvas, position, cell, player.color.color, brass, state.config.pawnStyleId);
+        _drawPawn(canvas, position, cell, playerColor, brass, state.config.pawnStyleId);
       }
     }
     canvas.drawCircle(origin + Offset(side / 2, side / 2), cell * 1.05, Paint()..color = map.center);
     canvas.drawCircle(origin + Offset(side / 2, side / 2), cell * .68, brass);
   }
+
+  Color _playerColor(PlayerColor player) => switch (colorVisionMode) {
+        ColorVisionMode.standard => player.color,
+        ColorVisionMode.deuteranopia => switch (player) {
+            PlayerColor.coral => const Color(0xff0072b2),
+            PlayerColor.sapphire => const Color(0xff56b4e9),
+            PlayerColor.jade => const Color(0xfff0e442),
+            PlayerColor.gold => const Color(0xffd55e00),
+          },
+        ColorVisionMode.highContrast => switch (player) {
+            PlayerColor.coral => const Color(0xffff4b4b),
+            PlayerColor.sapphire => const Color(0xff44b5ff),
+            PlayerColor.jade => const Color(0xff3eea88),
+            PlayerColor.gold => const Color(0xffffde3d),
+          },
+      };
 
   Offset _trackPosition(int index, Offset origin, double cell) {
     final List<Offset> points = <Offset>[];

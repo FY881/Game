@@ -19,26 +19,64 @@ extension GamePaceX on GamePace {
       };
 }
 
+enum ColorVisionMode { standard, deuteranopia, highContrast }
+
+extension ColorVisionModeX on ColorVisionMode {
+  String get label => switch (this) {
+        ColorVisionMode.standard => 'الألوان القياسية',
+        ColorVisionMode.deuteranopia => 'ألوان ميسرة لتمييز الأحمر والأخضر',
+        ColorVisionMode.highContrast => 'تباين مرتفع',
+      };
+}
+
+enum PerformanceMode { standard, batterySaver }
+
+extension PerformanceModeX on PerformanceMode {
+  String get label => switch (this) {
+        PerformanceMode.standard => '60 إطارًا مستهدفًا',
+        PerformanceMode.batterySaver => 'توفير البطارية (30 إطارًا مستهدفًا)',
+      };
+}
+
 class GameSettings {
   const GameSettings({
     this.textScale = 1,
     this.reduceMotion = false,
     this.pace = GamePace.standard,
     this.soundEnabled = true,
+    this.vibrationEnabled = true,
+    this.colorVisionMode = ColorVisionMode.standard,
+    this.performanceMode = PerformanceMode.standard,
   });
 
   final double textScale;
   final bool reduceMotion;
   final GamePace pace;
   final bool soundEnabled;
+  final bool vibrationEnabled;
+  final ColorVisionMode colorVisionMode;
+  final PerformanceMode performanceMode;
 
   Duration get aiTurnDelay => reduceMotion ? Duration.zero : pace.aiTurnDelay;
+  bool get batterySaverEnabled => performanceMode == PerformanceMode.batterySaver;
 
-  GameSettings copyWith({double? textScale, bool? reduceMotion, GamePace? pace, bool? soundEnabled}) => GameSettings(
+  GameSettings copyWith({
+    double? textScale,
+    bool? reduceMotion,
+    GamePace? pace,
+    bool? soundEnabled,
+    bool? vibrationEnabled,
+    ColorVisionMode? colorVisionMode,
+    PerformanceMode? performanceMode,
+  }) =>
+      GameSettings(
         textScale: textScale ?? this.textScale,
         reduceMotion: reduceMotion ?? this.reduceMotion,
         pace: pace ?? this.pace,
         soundEnabled: soundEnabled ?? this.soundEnabled,
+        vibrationEnabled: vibrationEnabled ?? this.vibrationEnabled,
+        colorVisionMode: colorVisionMode ?? this.colorVisionMode,
+        performanceMode: performanceMode ?? this.performanceMode,
       );
 }
 

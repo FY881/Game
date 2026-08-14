@@ -70,6 +70,9 @@ class _HomePageState extends ConsumerState<HomePage> {
               children: <Widget>[
                 IconButton(tooltip: 'إعدادات اللعب', onPressed: () => context.push('/settings'), icon: const Icon(Icons.settings_outlined)),
                 IconButton(tooltip: 'الأبطال والخرائط', onPressed: _openCollection, icon: const Icon(Icons.style_outlined)),
+                IconButton(tooltip: 'ملف اللاعب', onPressed: () => context.push('/profile'), icon: const Icon(Icons.person_outline)),
+                IconButton(tooltip: 'التحديات الفردية', onPressed: () => context.push('/challenges'), icon: const Icon(Icons.flag_outlined)),
+                IconButton(tooltip: 'سجل النتائج', onPressed: () => context.push('/history'), icon: const Icon(Icons.history)),
               ],
             ),
             const Icon(Icons.casino_outlined, size: 72, color: Color(0xffd8b16d)),

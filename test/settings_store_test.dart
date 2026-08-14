@@ -14,6 +14,9 @@ void main() {
       reduceMotion: true,
       pace: GamePace.calm,
       soundEnabled: false,
+      vibrationEnabled: false,
+      colorVisionMode: ColorVisionMode.deuteranopia,
+      performanceMode: PerformanceMode.batterySaver,
     );
 
     await store.save(expected);
@@ -23,5 +26,8 @@ void main() {
     expect(restored.reduceMotion, isTrue);
     expect(restored.pace, GamePace.calm);
     expect(restored.soundEnabled, isFalse);
+    expect(restored.vibrationEnabled, isFalse);
+    expect(restored.colorVisionMode, ColorVisionMode.deuteranopia);
+    expect(restored.performanceMode, PerformanceMode.batterySaver);
   });
 }

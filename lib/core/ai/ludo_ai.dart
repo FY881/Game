@@ -30,7 +30,7 @@ class LudoAi {
     final int progress = pawn.progress == -1 ? 0 : pawn.progress + dice;
     int score = progress * 2;
     if (pawn.progress == -1) score += 14;
-    if (progress == ClassicLudoRules.homeProgress) score += 180;
+    if (progress == state.config.homeProgress) score += 180;
     if (progress < ClassicLudoRules.trackLength) {
       final int destination = ClassicLudoRules.trackIndex(pawn.color, progress);
       if (ClassicLudoRules.safeTrackIndices.contains(destination)) score += 24;

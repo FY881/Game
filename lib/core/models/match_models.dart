@@ -6,6 +6,45 @@ enum MatchPhase { rolling, selectingPawn, finished }
 
 enum AiDifficulty { easy, medium, expert }
 
+enum GameMode { classic, quick, training }
+
+extension GameModeX on GameMode {
+  String get label => switch (this) {
+        GameMode.classic => 'كلاسيكي',
+        GameMode.quick => 'سريع',
+        GameMode.training => 'تدريب',
+      };
+
+  String get description => switch (this) {
+        GameMode.classic => '4 أحجار ومسار كامل',
+        GameMode.quick => '3 أحجار وقواعد دخول مرنة',
+        GameMode.training => 'تعلم الخطوات دون ضغط',
+      };
+}
+
+class MatchConfig {
+  const MatchConfig({
+    this.mode = GameMode.classic,
+    this.humanPlayers = 1,
+    this.aiDifficulty = AiDifficulty.medium,
+  });
+
+  final GameMode mode;
+  final int humanPlayers;
+  final AiDifficulty aiDifficulty;
+
+  int get pawnsPerPlayer => mode == GameMode.quick ? 3 : 4;
+  int get homeProgress => mode == GameMode.quick ? 46 : 57;
+  bool get canUndo => mode == GameMode.training;
+  bool canEnterWith(int dice) => mode == GameMode.quick ? dice == 5 || dice == 6 : dice == 6;
+
+  MatchConfig copyWith({GameMode? mode, int? humanPlayers, AiDifficulty? aiDifficulty}) => MatchConfig(
+        mode: mode ?? this.mode,
+        humanPlayers: humanPlayers ?? this.humanPlayers,
+        aiDifficulty: aiDifficulty ?? this.aiDifficulty,
+      );
+}
+
 extension PlayerColorX on PlayerColor {
   Color get color => switch (this) {
         PlayerColor.coral => const Color(0xffd8704c),
@@ -55,6 +94,8 @@ class MatchState {
     required this.players,
     required this.currentPlayer,
     required this.phase,
+    this.config = const MatchConfig(),
+    this.isPaused = false,
     this.dice,
     this.winner,
     this.message = 'ارمِ النرد لبدء المباراة.',
@@ -63,6 +104,8 @@ class MatchState {
   final List<Player> players;
   final int currentPlayer;
   final MatchPhase phase;
+  final MatchConfig config;
+  final bool isPaused;
   final int? dice;
   final PlayerColor? winner;
   final String message;
@@ -73,6 +116,8 @@ class MatchState {
     List<Player>? players,
     int? currentPlayer,
     MatchPhase? phase,
+    MatchConfig? config,
+    bool? isPaused,
     int? dice,
     bool clearDice = false,
     PlayerColor? winner,
@@ -83,6 +128,8 @@ class MatchState {
         players: players ?? this.players,
         currentPlayer: currentPlayer ?? this.currentPlayer,
         phase: phase ?? this.phase,
+        config: config ?? this.config,
+        isPaused: isPaused ?? this.isPaused,
         dice: clearDice ? null : (dice ?? this.dice),
         winner: clearWinner ? null : (winner ?? this.winner),
         message: message ?? this.message,

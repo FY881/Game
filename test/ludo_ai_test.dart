@@ -25,4 +25,15 @@ void main() {
 
     expect(choice, 'coral-capture');
   });
+
+  test('الذكاء السهل والمحترف لا يختاران إلا حجرًا قانونيًا', () {
+    final MatchState rolled = ClassicLudoRules.roll(ClassicLudoRules.initialState(humanPlayers: 0), 6);
+    final List<String> legal = ClassicLudoRules.legalPawnIds(rolled);
+
+    final String? easy = LudoAi.choosePawn(rolled, difficulty: AiDifficulty.easy, random: Random(3));
+    final String? expert = LudoAi.choosePawn(rolled, difficulty: AiDifficulty.expert, random: Random(4));
+
+    expect(legal, contains(easy));
+    expect(legal, contains(expert));
+  });
 }

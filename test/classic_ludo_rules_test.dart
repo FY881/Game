@@ -44,5 +44,13 @@ void main() {
 
       expect(ClassicLudoRules.legalPawnIds(state), isEmpty);
     });
+
+    test('الوضع السريع يستخدم ثلاثة أحجار ويقبل الدخول برمية خمسة', () {
+      final MatchState state = ClassicLudoRules.initialState(config: const MatchConfig(mode: GameMode.quick));
+      final MatchState rolled = ClassicLudoRules.roll(state, 5);
+
+      expect(rolled.activePlayer.pawns, hasLength(3));
+      expect(ClassicLudoRules.legalPawnIds(rolled), isNotEmpty);
+    });
   });
 }

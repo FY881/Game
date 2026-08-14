@@ -12,3 +12,6 @@ android/local.properties
 *.keystore
 *.jks
 key.properties
+server/node_modules/
+server/dist/
+server/.env

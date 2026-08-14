@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786674459147,
+      "tag": "0000_concerned_photon",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786675397938,
+      "tag": "0001_adorable_boomerang",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786676506978,
+      "tag": "0002_sloppy_titanium_man",
+      "breakpoints": true
+    }
+  ]
+}

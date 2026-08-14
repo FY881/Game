@@ -13,6 +13,13 @@ export const defaultProgress: NexusProgress = {
   accuracy: 78,
   unlockedStages: 2,
   lastPlayedAt: null,
+  updatedAt: 0,
+  energy: 5,
+  hearts: 3,
+  gold: 0,
+  bossWins: 0,
+  completedStages: [1],
+  companionStage: 0,
 };
 
 export function loadProgress(): NexusProgress {
@@ -25,7 +32,9 @@ export function loadProgress(): NexusProgress {
   }
 }
 
-export function saveProgress(progress: NexusProgress) {
+export function saveProgress(progress: NexusProgress, options: { notify?: boolean } = {}) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+  const next = { ...progress, updatedAt: progress.updatedAt || Date.now() };
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  if (options.notify !== false) window.dispatchEvent(new Event("nexus:progress-saved"));
 }

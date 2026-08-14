@@ -20,4 +20,11 @@ export type NexusProgress = {
   accuracy: number;
   unlockedStages: number;
   lastPlayedAt: string | null;
+  updatedAt: number;
+  energy: number;
+  hearts: number;
+  gold: number;
+  bossWins: number;
+  completedStages: number[];
+  companionStage: number;
 };

@@ -1,12 +1,17 @@
 // Style philosophy: مختبر المعرفة المعاصر — asymmetric navigation keeps the question central and the wayfinding calm.
-import { Activity, Compass, Gamepad2, Home, Moon, Settings2, Sparkles, UserRound } from "lucide-react";
+import { Activity, Compass, Gamepad2, Home, Moon, Settings2, ShoppingBag, Sparkles, Users, UserRound } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { NexusMark } from "./Mark";
+import { CloudSyncStatus } from "./CloudSync";
+import { MaintenanceGate } from "./MaintenanceGate";
 
 const navItems = [
   { href: "/", label: "المركز", icon: Home },
   { href: "/play", label: "اختبار العقدة", icon: Activity },
   { href: "/adventure", label: "المغامرة", icon: Compass },
+  { href: "/community", label: "المجتمع", icon: Users },
+  { href: "/arcade", label: "الآركيد", icon: Gamepad2 },
+  { href: "/shop", label: "المتجر", icon: ShoppingBag },
 ];
 
 export function NexusShell({ children }: { children: React.ReactNode }) {
@@ -41,12 +46,12 @@ export function NexusShell({ children }: { children: React.ReactNode }) {
             <span className="topbar-context">مختبر المعرفة المعاصر</span>
           </div>
           <div className="nexus-topbar__actions">
-            <span className="connection-chip"><span className="connection-chip__dot" /> محفوظ محليًا</span>
+            <CloudSyncStatus />
             <button className="icon-button" type="button" aria-label="الإعدادات"><Settings2 size={17} /></button>
-            <button className="avatar-button" type="button" aria-label="ملف اللاعب"><UserRound size={17} /></button>
+            <Link href="/profile" className="avatar-button" aria-label="ملف اللاعب"><UserRound size={17} /></Link>
           </div>
         </header>
-        {children}
+        <MaintenanceGate>{children}</MaintenanceGate>
         <footer className="nexus-footer"><span>© NEXUS</span><span>كل إجابة تترك أثرًا.</span><span><Gamepad2 size={13} /> وضع آمن للتجربة</span></footer>
       </main>
     </div>

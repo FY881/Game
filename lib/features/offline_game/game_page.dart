@@ -145,42 +145,9 @@ class _GamePageState extends ConsumerState<GamePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: <Widget>[
-                          Chip(label: Text(state.config.mode.label)),
-                          Chip(
-                              label: Text('${state.config.humanPlayers} محلي')),
-                          Chip(
-                              label: Text(switch (state.config.aiDifficulty) {
-                            AiDifficulty.easy => 'AI سهل',
-                            AiDifficulty.medium => 'AI متوسط',
-                            AiDifficulty.expert => 'AI محترف'
-                          })),
-                          Chip(
-                              avatar: Icon(
-                                  Heroes.byId(state.config.heroId).icon,
-                                  size: 18),
-                              label:
-                                  Text(Heroes.byId(state.config.heroId).name)),
-                          Chip(
-                              avatar: Icon(
-                                  BoardMaps.byId(state.config.mapId).icon,
-                                  size: 18),
-                              label: Text(
-                                  BoardMaps.byId(state.config.mapId).name)),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        state.activePlayer.isHuman
-                            ? 'دور ${state.activePlayer.color.label}'
-                            : 'يفكر خصم ${state.activePlayer.color.label}…',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(state.message),
+                      _TurnBanner(state: state),
+                      const SizedBox(height: 10),
+                      Text(state.message, textAlign: TextAlign.center),
                       if (state.config.mode == GameMode.training) ...<Widget>[
                         const SizedBox(height: 10),
                         DecoratedBox(
@@ -221,25 +188,43 @@ class _GamePageState extends ConsumerState<GamePage> {
                               ?.copyWith(color: const Color(0xffffd46d)),
                           textAlign: TextAlign.center,
                         ),
-                      const SizedBox(height: 10),
-                      FilledButton.icon(
-                        onPressed: state.phase == MatchPhase.rolling &&
-                                state.activePlayer.isHuman &&
-                                !state.isPaused
-                            ? () {
-                                if (settings.vibrationEnabled) {
-                                  unawaited(HapticFeedback.lightImpact());
-                                }
-                                controller.rollDice();
-                              }
-                            : null,
-                        icon: Icon(
+                      const SizedBox(height: 12),
+                      _DiceCommand(
+                        dice: state.dice,
+                        enabled: state.phase == MatchPhase.rolling &&
+                            state.activePlayer.isHuman &&
+                            !state.isPaused,
+                        diceIcon:
                             Cosmetics.diceById(state.config.diceStyleId).icon,
-                            color: Cosmetics.diceById(state.config.diceStyleId)
-                                .accent),
-                        label: Text(state.dice == null
-                            ? 'ارمِ النرد'
-                            : 'النتيجة ${state.dice}'),
+                        accent:
+                            Cosmetics.diceById(state.config.diceStyleId).accent,
+                        onPressed: () {
+                          if (settings.vibrationEnabled) {
+                            unawaited(HapticFeedback.lightImpact());
+                          }
+                          controller.rollDice();
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                              child: _MatchFact(
+                                  icon: Heroes.byId(state.config.heroId).icon,
+                                  label:
+                                      Heroes.byId(state.config.heroId).name)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              child: _MatchFact(
+                                  icon: BoardMaps.byId(state.config.mapId).icon,
+                                  label:
+                                      BoardMaps.byId(state.config.mapId).name)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              child: _MatchFact(
+                                  icon: Icons.groups_2_outlined,
+                                  label: '${state.config.humanPlayers} محلي')),
+                        ],
                       ),
                       if (state.config.canUndo) ...<Widget>[
                         const SizedBox(height: 8),
@@ -261,4 +246,110 @@ class _GamePageState extends ConsumerState<GamePage> {
       ),
     );
   }
+}
+
+class _TurnBanner extends StatelessWidget {
+  const _TurnBanner({required this.state});
+
+  final MatchState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = state.activePlayer.color.color;
+    final bool human = state.activePlayer.isHuman;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: .8)),
+      ),
+      child: Row(children: <Widget>[
+        Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                boxShadow: <BoxShadow>[
+                  BoxShadow(color: color.withValues(alpha: .65), blurRadius: 12)
+                ])),
+        const SizedBox(width: 10),
+        Expanded(
+            child: Text(
+                human
+                    ? 'دور مملكتك: ${state.activePlayer.color.label}'
+                    : 'الخصم ${state.activePlayer.color.label} يخطط لحركته',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w900))),
+        Icon(human ? Icons.touch_app_outlined : Icons.psychology_alt_outlined,
+            color: color),
+      ]),
+    );
+  }
+}
+
+class _DiceCommand extends StatelessWidget {
+  const _DiceCommand(
+      {required this.dice,
+      required this.enabled,
+      required this.diceIcon,
+      required this.accent,
+      required this.onPressed});
+
+  final int? dice;
+  final bool enabled;
+  final IconData diceIcon;
+  final Color accent;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: 62,
+        child: FilledButton(
+          onPressed: enabled ? onPressed : null,
+          style: FilledButton.styleFrom(
+              backgroundColor: accent,
+              foregroundColor: const Color(0xff10141f)),
+          child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                        color: Color(0x33ffffff), shape: BoxShape.circle),
+                    child: Icon(diceIcon)),
+                const SizedBox(width: 12),
+                Text(dice == null ? 'ارمِ نرد المملكة' : 'نتيجة النرد: $dice'),
+              ]),
+        ),
+      );
+}
+
+class _MatchFact extends StatelessWidget {
+  const _MatchFact({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+            color: const Color(0xff101d33),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xff2b4166))),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Icon(icon, size: 18, color: const Color(0xfff6c967)),
+          const SizedBox(height: 4),
+          Text(label,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall)
+        ]),
+      );
 }

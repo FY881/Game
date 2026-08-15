@@ -27,19 +27,46 @@ class GamePage extends ConsumerStatefulWidget {
 class _GamePageState extends ConsumerState<GamePage> {
   Timer? _aiTimer;
   DateTime _lastAiAction = DateTime.fromMillisecondsSinceEpoch(0);
+  late final LudoBoardGame _boardGame;
 
   @override
   void initState() {
     super.initState();
+    final GameSettings settings = ref.read(gameSettingsProvider);
+    _boardGame = LudoBoardGame(
+      ref.read(offlineMatchProvider),
+      colorVisionMode: settings.colorVisionMode,
+      batterySaver: settings.batterySaverEnabled,
+      onPawnSelected: _movePawnFromBoard,
+    );
     _aiTimer = Timer.periodic(const Duration(milliseconds: 150), (Timer timer) {
       final MatchState state = ref.read(offlineMatchProvider);
       final GameSettings settings = ref.read(gameSettingsProvider);
-      final bool waitComplete = DateTime.now().difference(_lastAiAction) >= settings.aiTurnDelay;
-      if (waitComplete && state.winner == null && !state.isPaused && !state.activePlayer.isHuman && state.phase == MatchPhase.rolling) {
+      final bool waitComplete =
+          DateTime.now().difference(_lastAiAction) >= settings.aiTurnDelay;
+      if (waitComplete &&
+          state.winner == null &&
+          !state.isPaused &&
+          !state.activePlayer.isHuman &&
+          state.phase == MatchPhase.rolling) {
         ref.read(offlineMatchProvider.notifier).playAiTurn();
         _lastAiAction = DateTime.now();
       }
     });
+  }
+
+  void _movePawnFromBoard(String pawnId) {
+    final MatchState state = ref.read(offlineMatchProvider);
+    final GameSettings settings = ref.read(gameSettingsProvider);
+    if (!state.activePlayer.isHuman ||
+        state.phase != MatchPhase.selectingPawn ||
+        !ClassicLudoRules.legalPawnIds(state).contains(pawnId)) {
+      return;
+    }
+    if (settings.vibrationEnabled) {
+      unawaited(HapticFeedback.selectionClick());
+    }
+    ref.read(offlineMatchProvider.notifier).movePawn(pawnId);
   }
 
   @override
@@ -52,14 +79,22 @@ class _GamePageState extends ConsumerState<GamePage> {
   Widget build(BuildContext context) {
     final MatchState state = ref.watch(offlineMatchProvider);
     final GameSettings settings = ref.watch(gameSettingsProvider);
-    ref.listen<MatchState>(offlineMatchProvider, (MatchState? previous, MatchState next) {
+    ref.listen<MatchState>(offlineMatchProvider,
+        (MatchState? previous, MatchState next) {
       if (previous?.winner == null && next.winner != null && mounted) {
-        unawaited(ref.read(localProgressProvider.notifier).recordFinishedMatch(next));
+        unawaited(
+            ref.read(localProgressProvider.notifier).recordFinishedMatch(next));
         context.go('/result', extra: next);
       }
     });
-    final OfflineMatchController controller = ref.read(offlineMatchProvider.notifier);
+    final OfflineMatchController controller =
+        ref.read(offlineMatchProvider.notifier);
     final List<String> legal = ClassicLudoRules.legalPawnIds(state);
+    _boardGame.syncState(
+      state,
+      nextColorVisionMode: settings.colorVisionMode,
+      nextBatterySaver: settings.batterySaverEnabled,
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text('مباراة ${state.config.mode.label}'),
@@ -89,17 +124,16 @@ class _GamePageState extends ConsumerState<GamePage> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: GameWidget<LudoBoardGame>(
-                        game: LudoBoardGame(
-                          state,
-                          colorVisionMode: settings.colorVisionMode,
-                          batterySaver: settings.batterySaverEnabled,
-                        ),
+                        game: _boardGame,
                       ),
                     ),
                     if (state.isPaused)
                       ColoredBox(
                         color: Colors.black45,
-                        child: Center(child: Text('المباراة متوقفة', style: Theme.of(context).textTheme.headlineSmall)),
+                        child: Center(
+                            child: Text('المباراة متوقفة',
+                                style:
+                                    Theme.of(context).textTheme.headlineSmall)),
                       ),
                   ],
                 ),
@@ -116,15 +150,33 @@ class _GamePageState extends ConsumerState<GamePage> {
                         runSpacing: 6,
                         children: <Widget>[
                           Chip(label: Text(state.config.mode.label)),
-                          Chip(label: Text('${state.config.humanPlayers} محلي')), 
-                          Chip(label: Text(switch (state.config.aiDifficulty) { AiDifficulty.easy => 'AI سهل', AiDifficulty.medium => 'AI متوسط', AiDifficulty.expert => 'AI محترف' })),
-                          Chip(avatar: Icon(Heroes.byId(state.config.heroId).icon, size: 18), label: Text(Heroes.byId(state.config.heroId).name)),
-                          Chip(avatar: Icon(BoardMaps.byId(state.config.mapId).icon, size: 18), label: Text(BoardMaps.byId(state.config.mapId).name)),
+                          Chip(
+                              label: Text('${state.config.humanPlayers} محلي')),
+                          Chip(
+                              label: Text(switch (state.config.aiDifficulty) {
+                            AiDifficulty.easy => 'AI سهل',
+                            AiDifficulty.medium => 'AI متوسط',
+                            AiDifficulty.expert => 'AI محترف'
+                          })),
+                          Chip(
+                              avatar: Icon(
+                                  Heroes.byId(state.config.heroId).icon,
+                                  size: 18),
+                              label:
+                                  Text(Heroes.byId(state.config.heroId).name)),
+                          Chip(
+                              avatar: Icon(
+                                  BoardMaps.byId(state.config.mapId).icon,
+                                  size: 18),
+                              label: Text(
+                                  BoardMaps.byId(state.config.mapId).name)),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        state.activePlayer.isHuman ? 'دور ${state.activePlayer.color.label}' : 'يفكر خصم ${state.activePlayer.color.label}…',
+                        state.activePlayer.isHuman
+                            ? 'دور ${state.activePlayer.color.label}'
+                            : 'يفكر خصم ${state.activePlayer.color.label}…',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 4),
@@ -133,7 +185,10 @@ class _GamePageState extends ConsumerState<GamePage> {
                         const SizedBox(height: 10),
                         DecoratedBox(
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.55),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primaryContainer
+                                .withValues(alpha: 0.55),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Padding(
@@ -141,47 +196,57 @@ class _GamePageState extends ConsumerState<GamePage> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                const Padding(padding: EdgeInsets.only(top: 2), child: Icon(Icons.school_outlined)),
+                                const Padding(
+                                    padding: EdgeInsets.only(top: 2),
+                                    child: Icon(Icons.school_outlined)),
                                 const SizedBox(width: 8),
-                                Expanded(child: Text(TrainingCoach.instructionFor(state))),
+                                Expanded(
+                                    child: Text(
+                                        TrainingCoach.instructionFor(state))),
                               ],
                             ),
                           ),
                         ),
                       ],
                       const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: state.activePlayer.pawns.map((Pawn pawn) {
-                          final bool isLegal = legal.contains(pawn.id);
-                          final int? destination = ClassicLudoRules.previewProgress(state, pawn.id);
-                          return OutlinedButton(
-                            onPressed: isLegal && state.activePlayer.isHuman
-                                ? () {
-                                    if (settings.vibrationEnabled) unawaited(HapticFeedback.selectionClick());
-                                    controller.movePawn(pawn.id);
-                                  }
-                                : null,
-                            child: Text(destination == null ? 'حجر ${pawn.id.split('-').last}' : 'حجر ${pawn.id.split('-').last} ← إلى $destination'),
-                          );
-                        }).toList(),
-                      ),
+                      if (state.phase == MatchPhase.selectingPawn &&
+                          state.activePlayer.isHuman)
+                        Text(
+                          legal.isEmpty
+                              ? 'لا توجد حركة قانونية لهذا الدور.'
+                              : 'المس الحجر المتوهج على اللوحة لتحريكه.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: const Color(0xffffd46d)),
+                          textAlign: TextAlign.center,
+                        ),
                       const SizedBox(height: 10),
                       FilledButton.icon(
-                        onPressed: state.phase == MatchPhase.rolling && state.activePlayer.isHuman && !state.isPaused
+                        onPressed: state.phase == MatchPhase.rolling &&
+                                state.activePlayer.isHuman &&
+                                !state.isPaused
                             ? () {
-                                if (settings.vibrationEnabled) unawaited(HapticFeedback.lightImpact());
+                                if (settings.vibrationEnabled) {
+                                  unawaited(HapticFeedback.lightImpact());
+                                }
                                 controller.rollDice();
                               }
                             : null,
-                        icon: Icon(Cosmetics.diceById(state.config.diceStyleId).icon, color: Cosmetics.diceById(state.config.diceStyleId).accent),
-                        label: Text(state.dice == null ? 'ارمِ النرد' : 'النتيجة ${state.dice}'),
+                        icon: Icon(
+                            Cosmetics.diceById(state.config.diceStyleId).icon,
+                            color: Cosmetics.diceById(state.config.diceStyleId)
+                                .accent),
+                        label: Text(state.dice == null
+                            ? 'ارمِ النرد'
+                            : 'النتيجة ${state.dice}'),
                       ),
                       if (state.config.canUndo) ...<Widget>[
                         const SizedBox(height: 8),
                         OutlinedButton.icon(
-                          onPressed: controller.canUndo ? controller.undoTrainingStep : null,
+                          onPressed: controller.canUndo
+                              ? controller.undoTrainingStep
+                              : null,
                           icon: const Icon(Icons.undo),
                           label: const Text('تراجع عن آخر خطوة'),
                         ),

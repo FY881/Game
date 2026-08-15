@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/online/online_api.dart';
 import '../../core/online/online_config.dart';
 import '../../core/online/online_google_sign_in.dart';
+import '../../core/online/online_google_link_flow.dart';
 import '../../core/online/online_models.dart';
 import '../../core/online/online_session_store.dart';
 
@@ -48,14 +49,16 @@ class OnlineSessionController extends AsyncNotifier<OnlineSession?> {
     if (!OnlineConfig.isGoogleSignInAvailable) {
       throw const OnlineApiFailure('GOOGLE_SIGN_IN_NOT_CONFIGURED');
     }
-    OnlineSession? current = state.valueOrNull;
-    if (current == null) {
-      current = await _api.createGuest(displayName);
-      await _store.save(current);
-      state = AsyncData<OnlineSession?>(current);
-    }
-    final String idToken = await OnlineGoogleSignIn.instance.requestIdToken();
-    await linkGoogle(idToken);
+    final OnlineGoogleLinkFlow flow = OnlineGoogleLinkFlow(
+      api: _api,
+      requestIdToken: OnlineGoogleSignIn.instance.requestIdToken,
+    );
+    final OnlineSession linked = await flow.link(
+      currentSession: state.valueOrNull,
+      displayName: displayName,
+      saveSession: _store.save,
+    );
+    state = AsyncData<OnlineSession?>(linked);
   }
 
   Future<void> signOutOnline() async {

@@ -37,7 +37,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('ممالك النرد'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('ابدأ المباراة'), 240);
-    expect(find.text('ابدأ المباراة'), findsOneWidget);
+    expect(find.text('ابدأ مواجهة الآن'), findsOneWidget);
   });
 }

@@ -38,12 +38,22 @@ class OnlineSession {
 }
 
 class OnlineRoom {
-  const OnlineRoom({required this.id, required this.code, required this.status, required this.playerIds, required this.matchId});
+  const OnlineRoom({
+    required this.id,
+    required this.code,
+    required this.status,
+    required this.playerIds,
+    required this.readyUserIds,
+    required this.revision,
+    required this.matchId,
+  });
 
   final String id;
   final String code;
   final String status;
   final List<String> playerIds;
+  final List<String> readyUserIds;
+  final int revision;
   final String? matchId;
 
   factory OnlineRoom.fromJson(Map<String, dynamic> json) => OnlineRoom(
@@ -51,6 +61,24 @@ class OnlineRoom {
         code: json['code'] as String,
         status: json['status'] as String,
         playerIds: (json['playerIds'] as List<dynamic>).cast<String>(),
+        readyUserIds: (json['readyUserIds'] as List<dynamic>? ?? const <dynamic>[]).cast<String>(),
+        revision: json['revision'] as int? ?? 0,
         matchId: json['matchId'] as String?,
+      );
+}
+
+class OnlineProgress {
+  const OnlineProgress({required this.experience, required this.gold, required this.gems, required this.seasonPoints});
+
+  final int experience;
+  final int gold;
+  final int gems;
+  final int seasonPoints;
+
+  factory OnlineProgress.fromJson(Map<String, dynamic> json) => OnlineProgress(
+        experience: json['experience'] as int,
+        gold: json['gold'] as int,
+        gems: json['gems'] as int,
+        seasonPoints: json['seasonPoints'] as int,
       );
 }

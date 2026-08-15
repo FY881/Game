@@ -9,9 +9,11 @@ class OnlineRoomClient {
   io.Socket? _socket;
   final StreamController<OnlineRoom> _rooms = StreamController<OnlineRoom>.broadcast();
   final StreamController<Map<String, dynamic>> _matches = StreamController<Map<String, dynamic>>.broadcast();
+  final StreamController<OnlineProgress> _progress = StreamController<OnlineProgress>.broadcast();
 
   Stream<OnlineRoom> get roomStates => _rooms.stream;
   Stream<Map<String, dynamic>> get matchStates => _matches.stream;
+  Stream<OnlineProgress> get progressStates => _progress.stream;
 
   Future<void> connect(String accessToken) async {
     if (!OnlineConfig.isAvailable) throw StateError('ONLINE_NOT_CONFIGURED');
@@ -23,6 +25,12 @@ class OnlineRoomClient {
     _socket = socket;
     socket.on('room:state', (dynamic payload) => _rooms.add(OnlineRoom.fromJson((payload as Map).cast<String, dynamic>())));
     socket.on('match:state', (dynamic payload) => _matches.add((payload as Map).cast<String, dynamic>()));
+    socket.on('queue:matched', (dynamic payload) {
+      final Map<String, dynamic> matched = (payload as Map).cast<String, dynamic>();
+      _rooms.add(OnlineRoom.fromJson((matched['room'] as Map).cast<String, dynamic>()));
+      _matches.add((matched['match'] as Map).cast<String, dynamic>());
+    });
+    socket.on('progress:update', (dynamic payload) => _progress.add(OnlineProgress.fromJson((payload as Map).cast<String, dynamic>())));
     await _waitForConnection(socket);
   }
 
@@ -38,7 +46,36 @@ class OnlineRoomClient {
 
   Future<Map<String, dynamic>> startRoom(String code) async => _emitAck('room:start', <String, dynamic>{'code': code});
 
-  Future<Map<String, dynamic>> syncRoom(String code) async => _emitAck('room:sync', <String, dynamic>{'code': code});
+  Future<OnlineRoom> setReady(String code, bool ready) async {
+    final Map<String, dynamic> response = await _emitAck('room:ready', <String, dynamic>{'code': code, 'ready': ready});
+    return OnlineRoom.fromJson((response['data'] as Map).cast<String, dynamic>());
+  }
+
+  Future<OnlineRoom> leaveRoom(String code) async {
+    final Map<String, dynamic> response = await _emitAck('room:leave', <String, dynamic>{'code': code});
+    return OnlineRoom.fromJson((response['data'] as Map).cast<String, dynamic>());
+  }
+
+  Future<Map<String, dynamic>> queueMatch({required int maxPlayers, required String mode}) =>
+      _emitAck('queue:enter', <String, dynamic>{'maxPlayers': maxPlayers, 'mode': mode});
+
+  Future<void> cancelMatchmaking() async {
+    await _emitAck('queue:cancel', const <String, dynamic>{});
+  }
+
+  Future<Map<String, dynamic>> syncRoom(String code, {String? matchId, int? sinceRevision}) => _emitAck(
+        'room:sync',
+        <String, dynamic>{
+          'code': code,
+          if (matchId != null) 'matchId': matchId,
+          if (sinceRevision != null) 'sinceRevision': sinceRevision,
+        },
+      );
+
+  Future<OnlineProgress> getProgress() async {
+    final Map<String, dynamic> response = await _emitAck('progress:get', const <String, dynamic>{});
+    return OnlineProgress.fromJson((response['data'] as Map).cast<String, dynamic>());
+  }
 
   Future<Map<String, dynamic>> roll(String matchId) async => _emitAck('match:roll', <String, dynamic>{'matchId': matchId});
 
@@ -54,6 +91,7 @@ class OnlineRoomClient {
     await disconnect();
     await _rooms.close();
     await _matches.close();
+    await _progress.close();
   }
 
   Future<void> _waitForConnection(io.Socket socket) {

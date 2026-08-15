@@ -80,8 +80,16 @@ class LudoBoardGame extends FlameGame with TapCallbacks {
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
+        origin & Size.square(side),
+        const Radius.circular(30),
+      ),
+      Paint()
+        ..color = Color.alphaBlend(const Color(0x99050b18), map.background),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
           origin & Size.square(side), const Radius.circular(28)),
-      paper,
+      Paint()..color = paper.color.withValues(alpha: .96),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -99,6 +107,17 @@ class LudoBoardGame extends FlameGame with TapCallbacks {
         ..strokeWidth = cell * .15,
     );
 
+    for (final Player player in state.players) {
+      _drawKingdomBase(
+        canvas,
+        player.color,
+        origin,
+        cell,
+        _playerColor(player.color),
+        brass.color,
+      );
+    }
+
     for (int index = 0; index < ClassicLudoRules.trackLength; index++) {
       final Offset point = _trackPosition(index, origin, cell);
       canvas.drawRRect(
@@ -106,8 +125,21 @@ class LudoBoardGame extends FlameGame with TapCallbacks {
           Rect.fromCenter(center: point, width: cell * .74, height: cell * .74),
           Radius.circular(cell * .16),
         ),
-        ink,
+        _isSafeIndex(index)
+            ? (Paint()
+              ..color = Color.alphaBlend(
+                map.center.withValues(alpha: .8),
+                ink.color,
+              ))
+            : ink,
       );
+      if (_isSafeIndex(index)) {
+        canvas.drawCircle(
+          point,
+          cell * .16,
+          Paint()..color = brass.color.withValues(alpha: .8),
+        );
+      }
     }
 
     final List<String> legalPawnIds = state.activePlayer.isHuman
@@ -115,12 +147,6 @@ class LudoBoardGame extends FlameGame with TapCallbacks {
         : const <String>[];
     for (final Player player in state.players) {
       final Color playerColor = _playerColor(player.color);
-      final Offset base = _baseCenter(player.color, origin, cell);
-      canvas.drawCircle(
-        base,
-        cell * 1.75,
-        Paint()..color = playerColor.withValues(alpha: .24),
-      );
       for (int index = 0; index < player.pawns.length; index++) {
         final Pawn pawn = player.pawns[index];
         final Offset position =
@@ -146,8 +172,7 @@ class LudoBoardGame extends FlameGame with TapCallbacks {
       }
     }
     final Offset center = origin + Offset(side / 2, side / 2);
-    canvas.drawCircle(center, cell * 1.05, Paint()..color = map.center);
-    canvas.drawCircle(center, cell * .68, brass);
+    _drawCentralCitadel(canvas, center, cell, map.center, brass.color);
   }
 
   @override
@@ -199,6 +224,100 @@ class LudoBoardGame extends FlameGame with TapCallbacks {
             PlayerColor.gold => const Color(0xffffde3d),
           },
       };
+
+  bool _isSafeIndex(int index) =>
+      index % 13 == 0 ||
+      index == 6 ||
+      index == 19 ||
+      index == 32 ||
+      index == 45;
+
+  void _drawKingdomBase(
+    Canvas canvas,
+    PlayerColor color,
+    Offset origin,
+    double cell,
+    Color kingdomColor,
+    Color brass,
+  ) {
+    final Offset center = _baseCenter(color, origin, cell);
+    final Rect rect = Rect.fromCenter(
+      center: center,
+      width: cell * 4.6,
+      height: cell * 4.6,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, Radius.circular(cell * .55)),
+      Paint()..color = kingdomColor.withValues(alpha: .22),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        rect.deflate(cell * .12),
+        Radius.circular(cell * .45),
+      ),
+      Paint()
+        ..color = brass.withValues(alpha: .72)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = cell * .09,
+    );
+    for (final Offset slot in <Offset>[
+      const Offset(-.72, -.72),
+      const Offset(.72, -.72),
+      const Offset(-.72, .72),
+      const Offset(.72, .72),
+    ]) {
+      final Offset slotCenter = center + Offset(slot.dx * cell, slot.dy * cell);
+      canvas.drawCircle(
+        slotCenter,
+        cell * .40,
+        Paint()..color = kingdomColor.withValues(alpha: .40),
+      );
+      canvas.drawCircle(
+        slotCenter,
+        cell * .40,
+        Paint()
+          ..color = brass.withValues(alpha: .7)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = cell * .045,
+      );
+    }
+  }
+
+  void _drawCentralCitadel(
+    Canvas canvas,
+    Offset center,
+    double cell,
+    Color core,
+    Color brass,
+  ) {
+    final Path star = Path();
+    for (int index = 0; index < 10; index++) {
+      final double angle = -math.pi / 2 + index * math.pi / 5;
+      final double radius = index.isEven ? cell * 1.42 : cell * .66;
+      final Offset point =
+          center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
+      if (index == 0) {
+        star.moveTo(point.dx, point.dy);
+      } else {
+        star.lineTo(point.dx, point.dy);
+      }
+    }
+    star.close();
+    canvas.drawPath(star, Paint()..color = core.withValues(alpha: .95));
+    canvas.drawPath(
+      star,
+      Paint()
+        ..color = brass
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = cell * .11,
+    );
+    canvas.drawCircle(
+      center,
+      cell * .48,
+      Paint()..color = const Color(0xffffe4a0).withValues(alpha: .92),
+    );
+    canvas.drawCircle(center, cell * .26, Paint()..color = brass);
+  }
 
   Offset _trackPosition(int index, Offset origin, double cell) {
     final List<Offset> points = <Offset>[];

@@ -87,7 +87,7 @@ class _MamalikAppState extends ConsumerState<MamalikApp> {
     final GameSettings settings = ref.watch(gameSettingsProvider);
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'ممالك النرد',
+      title: 'ممالك النرد: صراع الأبطال',
       routerConfig: MamalikApp._router,
       theme: ThemeData(
         useMaterial3: true,

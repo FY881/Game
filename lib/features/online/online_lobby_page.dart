@@ -57,6 +57,23 @@ class OnlineLobbyPage extends ConsumerWidget {
             children: <Widget>[
               ListTile(leading: const Icon(Icons.verified_user_outlined), title: Text(onlineSession.user.displayName as String), subtitle: Text('الهوية: ${onlineSession.user.provider}')),
               const SizedBox(height: 12),
+              if (onlineSession.user.provider != 'google') ...<Widget>[
+                const Text('اربط Google لحماية التقدم واستعادته على جهاز جديد.'),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: OnlineConfig.isGoogleSignInAvailable
+                      ? () => ref.read(onlineSessionProvider.notifier).linkGoogleWithDevice(displayName: onlineSession.user.displayName as String)
+                      : null,
+                  icon: const Icon(Icons.account_circle_outlined),
+                  label: const Text('ربط حساب Google'),
+                ),
+                if (!OnlineConfig.isGoogleSignInAvailable)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text('يتطلب زر Google إصدار تجربة يمرر عنوان الخادم ومعرّف عميل الويب الموثقين.', textAlign: TextAlign.center),
+                  ),
+                const SizedBox(height: 12),
+              ],
               const Text('اتصال الغرف وWebSocket محكومان بعقد الخادم. واجهة إنشاء الغرف النهائية ستفتح بعد نشر الخادم الدائم وإضافة التخزين الخادمي.'),
               const SizedBox(height: 16),
               OutlinedButton(
